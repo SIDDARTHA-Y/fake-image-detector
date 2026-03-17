@@ -1,0 +1,10 @@
+# Ignore the Python virtual environment
+venv/
+env/
+__pycache__/
+
+# Ignore the massive image dataset
+dataset/
+
+# Ignore Mac system files (if you are on a Mac)
+.DS_Store

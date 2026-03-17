@@ -1,0 +1,79 @@
+<script>
+    function previewImage(input) {
+        const preview = document.getElementById('image-preview');
+        const predictBtn = document.getElementById('predict-btn');
+        const results = document.getElementById('results-container');
+        
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+                predictBtn.style.display = 'inline-block';
+                results.style.display = 'none';
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    async function predictImage() {
+        const fileInput = document.getElementById('file-input');
+        const predictBtn = document.getElementById('predict-btn');
+        const spinner = document.getElementById('spinner');
+        const results = document.getElementById('results-container');
+        const statusText = document.getElementById('status-text');
+        const confidenceText = document.getElementById('confidence-text');
+        const elaImage = document.getElementById('ela-image');
+
+        if (!fileInput.files || !fileInput.files[0]) return;
+
+        // UI Reset
+        predictBtn.style.display = 'none';
+        spinner.style.display = 'block';
+        results.style.display = 'none';
+
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+
+        try {
+            // SMART URL LOGIC: 
+            // Switches between local port 5000 and Vercel cloud automatically
+            const isLocal = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost';
+            const apiUrl = isLocal ? 'http://127.0.0.1:5000/api/predict' : '/api/predict';
+
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'AI Server Error');
+            }
+
+            const data = await response.json();
+
+            // Populate Results
+            statusText.innerText = data.status;
+            statusText.className = `prediction-text ${data.status.toLowerCase()}`;
+            confidenceText.innerText = data.confidence;
+            elaImage.src = data.ela_image_base64;
+            
+            spinner.style.display = 'none';
+            results.style.display = 'block';
+
+        } catch (error) {
+            console.error('Connection Error:', error);
+            
+            // Context-aware error message for the judges
+            const isLocal = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost';
+            const errorMsg = isLocal 
+                ? 'Analysis Failed: Is your Python terminal running at http://127.0.0.1:5000?' 
+                : 'Analysis Failed: The serverless function is initializing. Please wait 10 seconds and try again.';
+            
+            alert(errorMsg);
+            spinner.style.display = 'none';
+            predictBtn.style.display = 'inline-block';
+        }
+    }
+</script>
